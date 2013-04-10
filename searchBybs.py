@@ -12,8 +12,9 @@ def searchByTitle(title, page_num, request_time):
     page_str = urllib2.urlopen("http://202.112.134.140:8080/opac/openlink.php?title=%s&page=%s"%(title, page_num)).read()
     #end = clock()
     #print "catch page time:"+str((end-start)/1000000)
-
     page_tree = bs(page_str)
+
+    result_num = int(page_tree.find('div',attrs={'class':'search_form bulk-actions'}).strong.string)
 
     book_list = page_tree.find('ol',id="search_book_list").findAll('li')
     for book in book_list[10*(request_time-1):10*request_time-1]:
