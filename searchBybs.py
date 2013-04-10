@@ -2,11 +2,16 @@
 #coding:utf8
 
 import re
+import sys
 import urllib2
 from bs4 import BeautifulSoup as bs
 from time import clock
 
 def searchByTitle(title, page_num, request_time):
+    
+    #一次返回5个结果 default
+    default_num = 5
+    page_result_num = 20 #网页每次展示20个结果
 
     #start = clock()
     page_str = urllib2.urlopen("http://202.112.134.140:8080/opac/openlink.php?title=%s&page=%s"%(title, page_num)).read()
@@ -14,10 +19,26 @@ def searchByTitle(title, page_num, request_time):
     #print "catch page time:"+str((end-start)/1000000)
     page_tree = bs(page_str)
 
+    #确定起始、结束位置
+    #result_num 总结果数
     result_num = int(page_tree.find('div',attrs={'class':'search_form bulk-actions'}).strong.string)
+    begin = page_result_num*(page_num-1) + 5*(request_time-1) 
+    end = page_result_num*(page_num-1) + 5*request_time-1
+    if begin >= result_num:
+        print "No More Result"
+        return
+    else:
+        begin = 5*(request_time-1)
+    if end >= result_num:
+        end = result_num - page_result_num*(page_num-1)
+    else:
+        end = 5*request_time
+
+    print "begin:%s"%begin
+    print "end:%s"%end
 
     book_list = page_tree.find('ol',id="search_book_list").findAll('li')
-    for book in book_list[10*(request_time-1):10*request_time-1]:
+    for book in book_list[begin:end]:
         marc_no = re.search('marc_no=(\d+)', book.a['href']).group(1)
         title = book.a.string
         author = book.p.contents[2].strip()
@@ -27,9 +48,9 @@ def searchByTitle(title, page_num, request_time):
         
         book_no, position = getPositionByMarcNo(marc_no)
 
-        getItemInfo(marc_no)
-        #print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
-        #print "\t%s\t%s"%(book_no, position)
+        #getItemInfo(marc_no)
+        print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
+        print "\t%s\t%s"%(book_no, position)
 
 
 def getPositionByMarcNo(marc_no):
@@ -55,7 +76,6 @@ def getItemInfo(marc_no):
     page_tree = bs(page_str)
 
     item_dict = {}
-
     for item in page_tree.find('div',id='item_detail').findAll('dl'):
         dt = item.dt.string
         dd_a = item.dd.a
@@ -89,8 +109,11 @@ def getItemInfo(marc_no):
         print k+'\t'+item_dict[k]
 
 def main():
+    args = sys.argv[1:]
+    page = int(args[0])
+    request_time = int(args[1])
 
-    searchByTitle('最优',1,1)
+    searchByTitle('最优',page,request_time)
 
 if __name__ == '__main__':
     main()
