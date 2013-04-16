@@ -5,7 +5,57 @@ import re
 import sys
 import urllib2
 from bs4 import BeautifulSoup as bs
+import time
 from time import clock
+
+class BookInfo:
+
+    book_title = ''
+    book_author = ''
+    book_publisher = ''
+    book_stock = 0
+    book_left = 0
+    book_pic = ''
+    book_intro = ''
+
+    def __init__(self, title,intro,pic_url):
+
+        book_title = title
+        book_intro = intro
+        book_pic = pic_url
+
+def writeNewsMessage(fromUser, toUser, book_list)
+
+    link_url = ''
+    item_list = []
+    for book in book_list:
+        
+        item_template = ''' 
+                 <item>
+                 <Title><![CDATA[%s]]></Title> 
+                 <Description><![CDATA[%s]]></Description>
+                 <PicUrl><![CDATA[%s]]></PicUrl>
+                 <Url><![CDATA[%s]]></Url>
+                 </item>
+        '''%(book.book_title, book.book_intro, book_pic, link_url)
+        item_list.append(item_template)
+
+    template = '''
+             <xml>
+             <ToUserName><![CDATA[%s]]></ToUserName>
+             <FromUserName><![CDATA[%s]]></FromUserName>
+             <CreateTime>%s</CreateTime>
+             <MsgType><![CDATA[news]]></MsgType>
+             <ArticleCount>%s</ArticleCount>
+             <Articles>
+             %s
+             </Articles>
+             <FuncFlag>1</FuncFlag>
+             </xml> 
+    '''%(toUser, fromUser, int(time.time()),''.join(item_list))
+
+    return template
+
 
 def searchByTitle(title, page_num, request_time):
     
@@ -34,9 +84,8 @@ def searchByTitle(title, page_num, request_time):
     else:
         end = 5*request_time
 
-    print "begin:%s"%begin
-    print "end:%s"%end
-
+    #bookInfo list
+    book_items = []
     book_list = page_tree.find('ol',id="search_book_list").findAll('li')
     for book in book_list[begin:end]:
         marc_no = re.search('marc_no=(\d+)', book.a['href']).group(1)
@@ -48,9 +97,10 @@ def searchByTitle(title, page_num, request_time):
         
         book_no, position = getPositionByMarcNo(marc_no)
 
-        #getItemInfo(marc_no)
-        print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
-        print "\t%s\t%s"%(book_no, position)
+        img_url, intro = getItemInfo(marc_no)
+        book_item = BookInfo()
+        #print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
+        #print "\t%s\t%s"%(book_no, position)
 
 
 def getPositionByMarcNo(marc_no):
@@ -93,8 +143,10 @@ def getItemInfo(marc_no):
     img_url = douban_info_dict['image']
     intro = douban_info_dict['summary']
 
-    print "img:"+img_url
-    print "intro:"+intro
+    #print "img:"+img_url
+    #print "intro:"+intro
+
+    return img_url, intro
 
     #position & book_no
     tb = page_tree.find('table',id='item')
@@ -105,8 +157,8 @@ def getItemInfo(marc_no):
         status = tds[4].string.strip()
         print "%s\t%s\t%s"%(book_no,position,status)
 
-    for k in item_dict:
-        print k+'\t'+item_dict[k]
+    #for k in item_dict:
+    #    print k+'\t'+item_dict[k]
 
 def main():
     args = sys.argv[1:]
