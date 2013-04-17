@@ -20,13 +20,13 @@ class BookInfo:
 
     def __init__(self, title,intro,pic_url):
 
-        book_title = title
-        book_intro = intro
-        book_pic = pic_url
+        self.book_title = title
+        self.book_intro = intro
+        self.book_pic = pic_url
 
-def writeNewsMessage(fromUser, toUser, book_list)
+def writeNewsMessage(fromUser, toUser, book_list):
 
-    link_url = ''
+    link_url = 'http://libweixin.duapp.com'
     item_list = []
     for book in book_list:
         
@@ -37,7 +37,7 @@ def writeNewsMessage(fromUser, toUser, book_list)
                  <PicUrl><![CDATA[%s]]></PicUrl>
                  <Url><![CDATA[%s]]></Url>
                  </item>
-        '''%(book.book_title, book.book_intro, book_pic, link_url)
+        '''%(book.book_title, book.book_intro, book.book_pic, link_url)
         item_list.append(item_template)
 
     template = '''
@@ -52,7 +52,7 @@ def writeNewsMessage(fromUser, toUser, book_list)
              </Articles>
              <FuncFlag>1</FuncFlag>
              </xml> 
-    '''%(toUser, fromUser, int(time.time()),''.join(item_list))
+    '''%(toUser, fromUser, int(time.time()), len(item_list), ''.join(item_list))
 
     return template
 
@@ -95,13 +95,17 @@ def searchByTitle(title, page_num, request_time):
         stock = re.match(u"([\u4e00-\u9fa5]+：)(\d+)",book.p.span.contents[0].strip()).group(2)
         left = re.match(u"([\u4e00-\u9fa5]+：)(\d+)",book.p.span.contents[2].strip()).group(2)
         
-        book_no, position = getPositionByMarcNo(marc_no)
+        #book_no, position = getPositionByMarcNo(marc_no)
 
         img_url, intro = getItemInfo(marc_no)
-        book_item = BookInfo()
-        #print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
+        book_item = BookInfo(title, intro, img_url)
+        print book_item.book_title
+        book_items.append(book_item)
+        print "%s\t%s\t%s\t%s\t%s/%s"%(title,marc_no,author,publisher,left,stock)
+        #print "%s\t%s"%(img_url, intro)
         #print "\t%s\t%s"%(book_no, position)
 
+    return book_items
 
 def getPositionByMarcNo(marc_no):
 
@@ -125,17 +129,17 @@ def getItemInfo(marc_no):
     page_str = urllib2.urlopen("http://202.112.134.140:8080/opac/item.php?marc_no=%s"%marc_no).read()
     page_tree = bs(page_str)
 
-    item_dict = {}
-    for item in page_tree.find('div',id='item_detail').findAll('dl'):
-        dt = item.dt.string
-        dd_a = item.dd.a
-        dd = u''
-        if dd_a:
-            dd_a.extract()
-            dd += dd_a.string
-        if item.dd.string:
-            dd += item.dd.string
-        item_dict[dt] = dd
+    #item_dict = {}
+    #for item in page_tree.find('div',id='item_detail').findAll('dl'):
+    #    dt = item.dt.string
+    #    dd_a = item.dd.a
+    #    dd = u''
+    #    if dd_a:
+    #        dd_a.extract()
+    #        dd += dd_a.string
+    #    if item.dd.string:
+    #        dd += item.dd.string
+    #    item_dict[dt] = dd
 
     #query douban
     isbn = re.search('isbn=(\d+)', page_str).group(1)
@@ -149,13 +153,13 @@ def getItemInfo(marc_no):
     return img_url, intro
 
     #position & book_no
-    tb = page_tree.find('table',id='item')
-    for tr in tb.findAll('tr')[1:]:
-        tds = tr.findAll('td')
-        book_no = tds[0].string.strip()
-        position = tds[3]['title'].strip()
-        status = tds[4].string.strip()
-        print "%s\t%s\t%s"%(book_no,position,status)
+    #tb = page_tree.find('table',id='item')
+    #for tr in tb.findAll('tr')[1:]:
+    #    tds = tr.findAll('td')
+    #    book_no = tds[0].string.strip()
+    #    position = tds[3]['title'].strip()
+    #    status = tds[4].string.strip()
+    #    print "%s\t%s\t%s"%(book_no,position,status)
 
     #for k in item_dict:
     #    print k+'\t'+item_dict[k]
@@ -165,7 +169,9 @@ def main():
     page = int(args[0])
     request_time = int(args[1])
 
-    searchByTitle('最优',page,request_time)
+    books = searchByTitle('小王子',page,request_time)
+    tt = writeNewsMessage("sujunyang","wangshu",books)
+    print tt
 
 if __name__ == '__main__':
     main()
